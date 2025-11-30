@@ -4,9 +4,12 @@ import com.luna.prosync.data.remote.ApiService
 import com.luna.prosync.data.remote.dto.BoardDto
 import com.luna.prosync.data.remote.dto.CreateBoardRequest
 import com.luna.prosync.data.remote.dto.CreateTaskRequest
+import com.luna.prosync.data.remote.dto.CreateUserProjectRequest
 import com.luna.prosync.data.remote.dto.EstadoDto
 import com.luna.prosync.data.remote.dto.TaskDto
+import com.luna.prosync.data.remote.dto.UpdateRoleRequest
 import com.luna.prosync.data.remote.dto.UpdateTaskRequest
+import com.luna.prosync.data.remote.dto.UserIdDto
 import com.luna.prosync.data.remote.dto.UserProjectDto
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,7 +35,14 @@ class BoardRepository @Inject constructor(
         return apiService.getTaskById(taskId)
     }
 
-    suspend fun updateTask(taskId: Int, title: String, description: String?, statusId: Int, dueDate: String?): TaskDto {
+    suspend fun updateTask(
+        taskId: Int,
+        title: String,
+        description: String?,
+        statusId: Int,
+        dueDate: String?,
+        responsableId: Int?
+    ): TaskDto {
         val estadoName = when(statusId) {
             1 -> "Pendiente"
             2 -> "En Progreso"
@@ -40,17 +50,35 @@ class BoardRepository @Inject constructor(
             else -> "Pendiente"
         }
         val estadoDto = EstadoDto(id = statusId, estado = estadoName)
+        val responsableDto = if (responsableId != null) UserIdDto(id = responsableId) else null
+
 
         val request = UpdateTaskRequest(
             title = title,
             description = description,
             estado = estadoDto,
-            dueDate = dueDate
+            dueDate = dueDate,
+            responsable = responsableDto
         )
         return apiService.updateTask(taskId, request)
     }
 
     suspend fun getProjectMembers(projectId: Int): List<UserProjectDto> {
         return apiService.getProjectMembers(projectId)
+    }
+
+    suspend fun addMemberByEmail(projectId: Int, email: String) {
+        val userDto = apiService.getUserByEmail(email)
+        val request = CreateUserProjectRequest(
+            userId = userDto.id,
+            projectId = projectId,
+            rolId = 3
+        )
+        apiService.addUserToProject(request)
+    }
+
+    suspend fun changeMemberRole(userId: Int, projectId: Int, newRoleId: Int) {
+        val request = UpdateRoleRequest(rolId = newRoleId)
+        apiService.updateUserRole(userId, projectId, request)
     }
 }

@@ -7,6 +7,7 @@ import com.luna.prosync.data.remote.dto.CreateBoardRequest
 import com.luna.prosync.data.remote.dto.CreateCommentRequest
 import com.luna.prosync.data.remote.dto.CreateProjectRequest
 import com.luna.prosync.data.remote.dto.CreateTaskRequest
+import com.luna.prosync.data.remote.dto.CreateUserProjectRequest
 import com.luna.prosync.data.remote.dto.DashboardStatsDto
 import com.luna.prosync.data.remote.dto.InviteMemberRequest
 import com.luna.prosync.data.remote.dto.LoginRequest
@@ -14,6 +15,7 @@ import com.luna.prosync.data.remote.dto.NotificationDto
 import com.luna.prosync.data.remote.dto.PageResponse
 import com.luna.prosync.data.remote.dto.ProjectDto
 import com.luna.prosync.data.remote.dto.TaskDto
+import com.luna.prosync.data.remote.dto.UpdateRoleRequest
 import com.luna.prosync.data.remote.dto.UpdateTaskRequest
 import com.luna.prosync.data.remote.dto.UserDto
 import com.luna.prosync.data.remote.dto.UserProjectDto
@@ -78,6 +80,19 @@ interface ApiService {
 
     @GET("api/user-projects/project/{projectId}")
     suspend fun getProjectMembers(@Path("projectId") projectId: Int): List<UserProjectDto>
+
+    @GET("api/users/email/{email}")
+    suspend fun getUserByEmail(@Path("email") email: String): UserDto
+
+    @POST("api/user-projects")
+    suspend fun addUserToProject(@Body request: CreateUserProjectRequest): UserProjectDto
+
+    @PUT("api/user-projects/{userId}/{projectId}")
+    suspend fun updateUserRole(
+        @Path("userId") userId: Int,
+        @Path("projectId") projectId: Int,
+        @Body request: UpdateRoleRequest
+    ): UserProjectDto
 
     @GET("api/notifications")
     suspend fun getUserNotifications(): PageResponse<NotificationDto>

@@ -16,6 +16,7 @@ import com.luna.prosync.ui.screens.project_detail.ProjectDetailScreen
 import com.luna.prosync.ui.screens.projects.ProjectScreen
 import com.luna.prosync.ui.screens.register.RegisterScreen
 import com.luna.prosync.ui.screens.task_detail.TaskDetailScreen
+import com.luna.prosync.ui.screens.team.TeamScreen
 
 object Routes {
     const val LOGIN = "login"
@@ -34,6 +35,9 @@ object Routes {
 
     const val MY_TASKS = "my_tasks"
     const val NOTIFICATIONS = "notifications"
+
+    const val TEAM = "team/{projectId}"
+    fun team(projectId: Int) = "team/$projectId"
 }
 
 @Composable
@@ -102,6 +106,9 @@ fun AppNavigation() {
                 },
                 onTaskClick = { taskId ->
                     navController.navigate(Routes.taskDetail(projectId, taskId))
+                },
+                onTeamClick = {
+                    navController.navigate(Routes.team(projectId))
                 }
             )
         }
@@ -143,6 +150,15 @@ fun AppNavigation() {
 
         composable(Routes.NOTIFICATIONS) {
             NotificationsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Routes.TEAM,
+            arguments = listOf(navArgument("projectId") { type = NavType.IntType })
+        ) {
+            TeamScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

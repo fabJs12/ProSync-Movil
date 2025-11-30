@@ -62,12 +62,12 @@ class TaskDetailViewModel @Inject constructor(
         }
     }
 
-    fun saveTaskChanges(title: String, description: String, statusId: Int, dueDate: String?) {
+    fun saveTaskChanges(title: String, description: String, statusId: Int, dueDate: String?, responsableId: Int?) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val finalDate = if (dueDate == "Sin Fecha" || dueDate.isNullOrBlank()) null else dueDate
-                boardRepository.updateTask(taskId, title, description, statusId, finalDate)
+                boardRepository.updateTask(taskId, title, description, statusId, finalDate, responsableId)
                 _uiState.update { it.copy(isLoading = false, isSaved = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Error al guardar: ${e.message}") }

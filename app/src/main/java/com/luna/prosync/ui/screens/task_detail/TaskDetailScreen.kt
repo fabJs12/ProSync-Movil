@@ -57,22 +57,25 @@ fun TaskDetailScreen(
     var selectedStatus by remember { mutableStateOf(TaskStatus.PENDING) }
     var selectedMember by remember { mutableStateOf<UserProjectDto?>(null) }
     var dueDate by remember { mutableStateOf("Sin fecha") }
-
     var showDatePicker by remember { mutableStateOf(false) }
+    var newCommentText by remember { mutableStateOf("") }
+
     val todayMillis = remember {
         val now = LocalDate.now()
         val instant = now.atStartOfDay(ZoneId.systemDefault()).toInstant()
         instant.toEpochMilli()
     }
 
-    var newCommentText by remember { mutableStateOf("") }
-
-    LaunchedEffect(uiState.task) {
+    LaunchedEffect(uiState.task, uiState.members) {
         uiState.task?.let { task ->
             title = task.title
             description = task.description ?: ""
             selectedStatus = TaskStatus.fromId(task.estadoId ?: task.estado?.id)
             dueDate = task.dueDate?.take(10) ?: "Sin fecha"
+
+            if (task.responsableId != null && uiState.members.isNotEmpty()) {
+                selectedMember = uiState.members.find { it.usuario.id == task.responsableId }
+            }
         }
     }
 
@@ -98,8 +101,7 @@ fun TaskDetailScreen(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            val formatter =
-                                SimpleDateFormat("yyyy-MM-dd'T'12:00:00'Z'", Locale.getDefault())
+                            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                             formatter.timeZone = TimeZone.getTimeZone("UTC")
                             dueDate = formatter.format(Date(millis))
                         }
@@ -175,7 +177,12 @@ fun TaskDetailScreen(
 
                     Button(
                         onClick = {
-                            viewModel.saveTaskChanges(title, description, selectedStatus.id, dueDate)
+                            val isoDate = if (dueDate != "Sin fecha" && dueDate.isNotBlank()) {
+                                if (dueDate.contains("T")) dueDate else "${dueDate}T12:00:00Z"
+                            } else null
+
+                            val responsableId = selectedMember?.usuario?.id
+                            viewModel.saveTaskChanges(title, description, selectedStatus.id, isoDate, responsableId)
                         },
                         modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(8.dp),

@@ -7,5 +7,11 @@ data class UpdateTaskRequest(
     val title: String,
     val description: String?,
     val estado: EstadoDto,
-    val dueDate: String?
+    val dueDate: String?,
+    val responsable: UserIdDto? = null
+)
+
+@Serializable
+data class UserIdDto(
+    val id: Int
 )
