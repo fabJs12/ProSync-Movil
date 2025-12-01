@@ -1,10 +1,12 @@
 package com.luna.prosync.ui.screens.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Card
@@ -84,7 +86,17 @@ fun HomeScreen(
                 title = { Text("ProSync", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = onNavigateToNotifications) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones")
+                        Box {
+                            Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones")
+                            if (uiState.unreadNotificationsCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(Color.Red, CircleShape)
+                                        .align(Alignment.TopEnd)
+                                )
+                            }
+                        }
                     }
                     IconButton(onClick = {
                         viewModel.onLogout()
@@ -168,8 +180,8 @@ fun StatCard(icon: ImageVector, title: String, value: String, change: String) {
         modifier = Modifier
             .fillMaxWidth()
             .height(130.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier

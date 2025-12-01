@@ -44,4 +44,39 @@ class NotificationsViewModel @Inject constructor(
             }
         }
     }
+
+    fun markAsRead(notificationId: Int) {
+        viewModelScope.launch {
+            // Optimistic update
+            _uiState.update { state ->
+                state.copy(
+                    notifications = state.notifications.map { 
+                        if (it.id == notificationId) it.copy(leida = true) else it 
+                    }
+                )
+            }
+            try {
+                dashboardRepository.markNotificationAsRead(notificationId)
+            } catch (e: Exception) {
+                // Revert on error (optional, or show message)
+                // For now just log or ignore as optimistic update is preferred
+            }
+        }
+    }
+
+    fun markAllAsRead() {
+        viewModelScope.launch {
+            // Optimistic update
+            _uiState.update { state ->
+                state.copy(
+                    notifications = state.notifications.map { it.copy(leida = true) }
+                )
+            }
+            try {
+                dashboardRepository.markAllNotificationsAsRead()
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
 }

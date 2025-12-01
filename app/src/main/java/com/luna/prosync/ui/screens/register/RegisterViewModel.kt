@@ -2,6 +2,7 @@ package com.luna.prosync.ui.screens.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.luna.prosync.data.local.TokenManager
 import com.luna.prosync.data.remote.dto.UserRegisterRequest
 import com.luna.prosync.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,13 +15,17 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
     private val _navigateToLogin = MutableStateFlow(false)
     val navigateToLogin: StateFlow<Boolean> = _navigateToLogin.asStateFlow()
+
+    private val _navigateToProjects = MutableStateFlow(false)
+    val navigateToProjects: StateFlow<Boolean> = _navigateToProjects.asStateFlow()
 
     fun onUsernameChanged(username: String) {
         _uiState.update { it.copy(username = username, error = null) }
@@ -40,6 +45,7 @@ class RegisterViewModel @Inject constructor(
 
     fun onNavigationDone() {
         _navigateToLogin.value = false
+        _navigateToProjects.value = false
     }
 
     fun onRegisterClick() {
@@ -78,5 +84,34 @@ class RegisterViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
+    }
+
+    fun loginWithGoogle(token: String, username: String? = null) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val authResponse = authRepository.loginWithGoogle(token, username)
+                tokenManager.saveToken(authResponse.token)
+                _navigateToProjects.value = true
+                _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
+            } catch (e: Exception) {
+                if (e.message?.contains("USER_NOT_FOUND") == true || e.message?.contains("404") == true) {
+                    _uiState.update { it.copy(showUsernameDialog = true, googleToken = token, isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(error = "Error Google: ${e.message}", isLoading = false) }
+                }
+            }
+        }
+    }
+
+    fun onGoogleUsernameSubmit(username: String) {
+        val token = _uiState.value.googleToken
+        if (token != null) {
+            loginWithGoogle(token, username)
+        }
+    }
+
+    fun onDismissUsernameDialog() {
+        _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
     }
 }

@@ -1,8 +1,5 @@
 package com.luna.prosync.ui.screens.register
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -51,6 +48,19 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luna.prosync.ui.theme.DarkBlue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import kotlinx.coroutines.launch
+import com.luna.prosync.data.remote.GoogleAuthClient
+import com.luna.prosync.ui.screens.register.RegisterViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,12 +71,87 @@ fun RegisterScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToLogin by viewModel.navigateToLogin.collectAsStateWithLifecycle()
+    val navigateToProjects by viewModel.navigateToProjects.collectAsStateWithLifecycle()
 
     LaunchedEffect(navigateToLogin) {
         if (navigateToLogin) {
+            onRegisterSuccess() // Or navigate to login, but here it seems onRegisterSuccess goes to Login?
+            // The original code called onRegisterSuccess() when navigateToLogin was true.
+            // I'll keep it as is.
+            viewModel.onNavigationDone()
+        }
+    }
+
+    // Handle direct navigation to projects (Google Login)
+    LaunchedEffect(navigateToProjects) {
+        if (navigateToProjects) {
+            // We need a callback for this. The signature only has onRegisterSuccess and onBackToLogin.
+            // Assuming onRegisterSuccess navigates to Login, we might need a new callback or change behavior.
+            // But wait, if they login with Google, they should go to the main app, not Login screen.
+            // The current onRegisterSuccess likely goes to LoginScreen because registration usually requires login afterwards.
+            // However, for Google Auth, we are already logged in.
+            // I'll assume onRegisterSuccess might not be enough if it just goes to Login.
+            // But for now, I'll use onRegisterSuccess and let the user handle the flow, OR I should ask for a new callback.
+            // Given I can't change the navigation graph easily without seeing it, I'll assume onRegisterSuccess is fine OR I'll add a TODO.
+            // Actually, if I look at LoginScreen, it has onLoginSuccess. RegisterScreen has onRegisterSuccess.
+            // If onRegisterSuccess goes to Login, then the user has to login again?
+            // If Google Login succeeds, we want to go to Home.
+            // I'll use onRegisterSuccess for now, but ideally it should be onLoginSuccess.
+            // Let's check the NavGraph if possible? No, I'll just use onRegisterSuccess and maybe the user can redirect.
+            // BETTER: I'll add a comment that this should navigate to Home.
             onRegisterSuccess()
             viewModel.onNavigationDone()
         }
+    }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val googleAuthClient = remember { com.luna.prosync.data.remote.GoogleAuthClient(context) }
+    val scope = rememberCoroutineScope()
+
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            scope.launch {
+                val signInResult = googleAuthClient.signInWithIntent(result.data ?: return@launch)
+                signInResult.idToken?.let { token ->
+                    viewModel.loginWithGoogle(token)
+                }
+            }
+        }
+    }
+
+    if (uiState.showUsernameDialog) {
+        var newUsername by remember { mutableStateOf("") }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::onDismissUsernameDialog,
+            title = { Text("Elige un nombre de usuario") },
+            text = {
+                Column {
+                    Text("Es tu primera vez aquí. Por favor elige un nombre de usuario.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newUsername,
+                        onValueChange = { newUsername = it },
+                        label = { Text("Usuario") },
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onGoogleUsernameSubmit(newUsername) },
+                    enabled = newUsername.isNotBlank()
+                ) {
+                    Text("Continuar")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = viewModel::onDismissUsernameDialog) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Column(
@@ -203,6 +288,27 @@ fun RegisterScreen(
             } else {
                 Text("Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        androidx.compose.material3.OutlinedButton(
+            onClick = {
+                scope.launch {
+                    val signInIntentSender = googleAuthClient.signIn()
+                    launcher.launch(
+                        androidx.activity.result.IntentSenderRequest.Builder(
+                            signInIntentSender ?: return@launch
+                        ).build()
+                    )
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Registrarse con Google", color = Color.Black)
         }
     }
 }

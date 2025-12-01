@@ -20,12 +20,14 @@ class AuthInterceptor @Inject constructor(
         val newRequest = if (token != null) {
             originalRequest.newBuilder()
                 .header("Authorization", "Bearer $token")
+                .header("Origin", "http://localhost:3000") // Hack for backend CORS
                 .build()
         } else {
-            originalRequest
+            originalRequest.newBuilder()
+                .header("Origin", "http://localhost:3000") // Hack for backend CORS
+                .build()
         }
 
         return chain.proceed(newRequest)
     }
-
 }

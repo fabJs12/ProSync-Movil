@@ -69,4 +69,33 @@ class LoginViewModel @Inject constructor(
     fun onNavigationDone() {
         _navigateToProjects.value = false
     }
+
+    fun loginWithGoogle(token: String, username: String? = null) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val authResponse = authRepository.loginWithGoogle(token, username)
+                tokenManager.saveToken(authResponse.token)
+                _navigateToProjects.value = true
+                _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
+            } catch (e: Exception) {
+                if (e.message?.contains("USER_NOT_FOUND") == true || e.message?.contains("404") == true) {
+                    _uiState.update { it.copy(showUsernameDialog = true, googleToken = token, isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(error = "Error Google: ${e.message}", isLoading = false) }
+                }
+            }
+        }
+    }
+
+    fun onGoogleUsernameSubmit(username: String) {
+        val token = _uiState.value.googleToken
+        if (token != null) {
+            loginWithGoogle(token, username)
+        }
+    }
+
+    fun onDismissUsernameDialog() {
+        _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
+    }
 }

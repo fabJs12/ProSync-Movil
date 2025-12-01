@@ -8,4 +8,5 @@ data class HomeUiState(
     val stats: DashboardStatsDto? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
+    val unreadNotificationsCount: Int = 0
 )

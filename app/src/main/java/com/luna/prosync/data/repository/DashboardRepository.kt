@@ -15,6 +15,14 @@ class DashboardRepository @Inject constructor(
         return apiService.getUserNotifications().content
     }
 
+    suspend fun markNotificationAsRead(id: Int) {
+        apiService.markNotificationAsRead(id)
+    }
+
+    suspend fun markAllNotificationsAsRead() {
+        apiService.markAllNotificationsAsRead()
+    }
+
     /* TODO: Not implemented in API
     suspend fun inviteMember(projectId: Int, email: String) {
         apiService.inviteMember(projectId, InviteMemberRequest(email))

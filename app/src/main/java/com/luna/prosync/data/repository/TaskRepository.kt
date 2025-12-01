@@ -5,6 +5,11 @@ import com.luna.prosync.data.remote.dto.CommentDto
 import com.luna.prosync.data.remote.dto.CreateCommentRequest
 import com.luna.prosync.data.remote.dto.CreateTaskRequest
 import com.luna.prosync.data.remote.dto.TaskDto
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,5 +47,16 @@ class TaskRepository @Inject constructor(
     suspend fun addComment(taskId: Int, userId: Int, contenido: String): CommentDto {
         val request = CreateCommentRequest(taskId, userId, contenido)
         return apiService.createComment(request)
+    }
+
+    suspend fun getTaskFiles(taskId: Int): List<com.luna.prosync.data.remote.dto.TaskFileDto> {
+        return apiService.getTaskFiles(taskId)
+    }
+
+    suspend fun uploadFile(taskId: Int, file: File, mimeType: String): com.luna.prosync.data.remote.dto.TaskFileDto? {
+        val requestFile = RequestBody.create(mimeType.toMediaTypeOrNull(), file)
+        val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
+        val response = apiService.uploadFile(taskId, body)
+        return if (response.isSuccessful) response.body() else null
     }
 }

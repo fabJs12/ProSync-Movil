@@ -4,6 +4,7 @@ import com.luna.prosync.data.remote.ApiService
 import com.luna.prosync.data.remote.dto.AuthResponse
 import com.luna.prosync.data.remote.dto.LoginRequest
 import com.luna.prosync.data.remote.dto.UserDto
+import com.luna.prosync.data.remote.dto.GoogleLoginRequest
 import com.luna.prosync.data.remote.dto.UserRegisterRequest
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -24,5 +25,9 @@ class AuthRepository @Inject constructor(
 
     suspend fun getProfile(): UserDto {
         return apiService.getProfile()
+    }
+
+    suspend fun loginWithGoogle(token: String, username: String? = null): AuthResponse {
+        return apiService.googleLogin(GoogleLoginRequest(token, username))
     }
 }

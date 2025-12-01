@@ -1,5 +1,8 @@
 package com.luna.prosync.ui.screens.task_detail
 
+import android.app.DownloadManager
+import android.net.Uri
+import android.os.Environment
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,10 +12,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,12 +60,27 @@ fun TaskDetailScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedStatus by remember { mutableStateOf(TaskStatus.PENDING) }
-    var selectedMember by remember { mutableStateOf<UserProjectDto?>(null) }
-    var dueDate by remember { mutableStateOf("Sin fecha") }
+    var title by remember(uiState.task) { mutableStateOf(uiState.task?.title ?: "") }
+    var description by remember(uiState.task) { mutableStateOf(uiState.task?.description ?: "") }
+    var selectedStatus by remember(uiState.task) {
+        mutableStateOf(TaskStatus.fromId(uiState.task?.estadoId ?: uiState.task?.estado?.id))
+    }
+    var dueDate by remember(uiState.task) {
+        mutableStateOf(uiState.task?.dueDate?.take(10) ?: "Sin fecha")
+    }
+
+    var selectedMember by remember(uiState.task, uiState.members) {
+        mutableStateOf(
+            if (uiState.task?.responsableId != null) {
+                uiState.members.find { it.usuario.id == uiState.task!!.responsableId }
+            } else {
+                null
+            }
+        )
+    }
+
     var showDatePicker by remember { mutableStateOf(false) }
     var newCommentText by remember { mutableStateOf("") }
 
@@ -66,26 +90,6 @@ fun TaskDetailScreen(
         instant.toEpochMilli()
     }
 
-    LaunchedEffect(uiState.task, uiState.members) {
-        uiState.task?.let { task ->
-            title = task.title
-            description = task.description ?: ""
-            selectedStatus = TaskStatus.fromId(task.estadoId ?: task.estado?.id)
-            dueDate = task.dueDate?.take(10) ?: "Sin fecha"
-
-            if (task.responsableId != null && uiState.members.isNotEmpty()) {
-                selectedMember = uiState.members.find { it.usuario.id == task.responsableId }
-            }
-        }
-    }
-
-    LaunchedEffect(uiState.isSaved) {
-        if (uiState.isSaved) {
-            onNavigateBack()
-            viewModel.onNavigationDone()
-        }
-    }
-
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
@@ -93,6 +97,13 @@ fun TaskDetailScreen(
             }
         }
     )
+
+    LaunchedEffect(uiState.isSaved) {
+        if (uiState.isSaved) {
+            onNavigateBack()
+            viewModel.onNavigationDone()
+        }
+    }
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -312,6 +323,48 @@ fun TaskDetailScreen(
 
                 Divider(color = Color(0xFFE2E8F0))
 
+                // Attachments Section
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Archivos Adjuntos", style = MaterialTheme.typography.labelMedium, color = TextLabel)
+                        
+                        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+                            contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+                        ) { uri ->
+                            uri?.let { viewModel.addAttachment(it, context) }
+                        }
+
+                        TextButton(onClick = { launcher.launch(arrayOf("*/*")) }) {
+                            Icon(Icons.Default.AttachFile, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Adjuntar")
+                        }
+                    }
+
+                    if (uiState.attachments.isEmpty()) {
+                        Text("No hay archivos adjuntos.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    } else {
+                        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                        uiState.attachments.forEach { attachment ->
+                            AttachmentItem(
+                                attachment = attachment,
+                                onRemove = { viewModel.removeAttachment(attachment) },
+                                onOpen = { uriHandler.openUri(attachment.archivoUrl) },
+                                onDownload = {
+                                    val fileName = attachment.archivoUrl.substringAfterLast("/").ifEmpty { "archivo_${System.currentTimeMillis()}" }
+                                    downloadFile(context, attachment.archivoUrl, fileName)
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Divider(color = Color(0xFFE2E8F0))
+
                 Text(
                     text = "Comentarios (${uiState.comments.size})",
                     style = MaterialTheme.typography.titleMedium,
@@ -406,6 +459,25 @@ fun CommentItem(comment: CommentDto) {
     }
 }
 
+// Helper function for downloading files
+fun downloadFile(context: android.content.Context, url: String, fileName: String) {
+    try {
+        val request = DownloadManager.Request(Uri.parse(url))
+            .setTitle(fileName)
+            .setDescription("Descargando archivo...")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
+
+        val downloadManager = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.enqueue(request)
+        android.widget.Toast.makeText(context, "Descarga iniciada", android.widget.Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        android.widget.Toast.makeText(context, "Error al descargar: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+    }
+}
+
 @Composable
 fun StatusOption(status: TaskStatus, isSelected: Boolean, onClick: () -> Unit) {
     val borderColor = if (isSelected) DarkBlue else Color(0xFFE2E8F0)
@@ -418,8 +490,8 @@ fun StatusOption(status: TaskStatus, isSelected: Boolean, onClick: () -> Unit) {
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
             .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Surface(
             color = status.bgColor,
@@ -477,6 +549,78 @@ fun MemberOption(member: UserProjectDto, isSelected: Boolean, onClick: () -> Uni
                 imageVector = Icons.Outlined.RadioButtonChecked,
                 contentDescription = null,
                 tint = DarkBlue
+            )
+        }
+    }
+}
+
+@Composable
+fun AttachmentItem(
+    attachment: com.luna.prosync.data.remote.dto.TaskFileDto,
+    onRemove: () -> Unit,
+    onOpen: () -> Unit,
+    onDownload: () -> Unit
+) {
+    val fileName = attachment.archivoUrl.substringAfterLast("/").ifEmpty { "Archivo adjunto" }
+    val extension = fileName.substringAfterLast(".", "").lowercase()
+
+    val (icon, iconColor) = when (extension) {
+        "pdf" -> Pair(Icons.Outlined.Description, Color(0xFFE53935)) // Red
+        "doc", "docx" -> Pair(Icons.Outlined.Description, Color(0xFF1E88E5)) // Blue
+        "xls", "xlsx", "csv" -> Pair(Icons.Default.DateRange, Color(0xFF43A047)) // Green
+        "jpg", "jpeg", "png", "gif", "bmp" -> Pair(Icons.Default.Image, Color(0xFF8E24AA)) // Purple
+        else -> Pair(Icons.Default.InsertDriveFile, DarkBlue)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onOpen() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = fileName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = DarkBlue,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+            Text(
+                text = attachment.createdAt?.take(10) ?: "Reciente",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+        }
+        
+        IconButton(onClick = onDownload) {
+            Icon(
+                imageVector = Icons.Default.Download,
+                contentDescription = "Descargar",
+                tint = DarkBlue,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        IconButton(onClick = onRemove) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Eliminar",
+                tint = Color.Red,
+                modifier = Modifier.size(20.dp)
             )
         }
     }

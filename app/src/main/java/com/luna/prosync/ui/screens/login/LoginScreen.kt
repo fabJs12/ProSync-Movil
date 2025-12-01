@@ -1,8 +1,5 @@
 package com.luna.prosync.ui.screens.login
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -23,6 +20,25 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luna.prosync.ui.theme.DarkBlue
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
+import android.app.Activity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.luna.prosync.ui.screens.login.LoginViewModel
 
 @Composable
 fun LoginScreen(
@@ -38,6 +54,56 @@ fun LoginScreen(
             onLoginSuccess()
             viewModel.onNavigationDone()
         }
+    }
+
+    val context = LocalContext.current
+    val googleAuthClient = remember { com.luna.prosync.data.remote.GoogleAuthClient(context) }
+    val scope = rememberCoroutineScope()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            scope.launch {
+                val signInResult = googleAuthClient.signInWithIntent(result.data ?: return@launch)
+                signInResult.idToken?.let { token ->
+                    viewModel.loginWithGoogle(token)
+                }
+            }
+        }
+    }
+
+    if (uiState.showUsernameDialog) {
+        var newUsername by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = viewModel::onDismissUsernameDialog,
+            title = { Text("Elige un nombre de usuario") },
+            text = {
+                Column {
+                    Text("Es tu primera vez aquí. Por favor elige un nombre de usuario.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newUsername,
+                        onValueChange = { newUsername = it },
+                        label = { Text("Usuario") },
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onGoogleUsernameSubmit(newUsername) },
+                    enabled = newUsername.isNotBlank()
+                ) {
+                    Text("Continuar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::onDismissUsernameDialog) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Column(
@@ -152,6 +218,30 @@ fun LoginScreen(
             } else {
                 Text("Iniciar Sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = {
+                scope.launch {
+                    val signInIntentSender = googleAuthClient.signIn()
+                    launcher.launch(
+                        IntentSenderRequest.Builder(
+                            signInIntentSender ?: return@launch
+                        ).build()
+                    )
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            // Google Icon (using a placeholder or resource if available, here just text for simplicity or Icon)
+            // Assuming no Google icon resource is readily available, I'll use text or a generic icon
+            // But ideally we should use a painter resource. I'll use text "Iniciar con Google"
+            Text("Iniciar con Google", color = Color.Black)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

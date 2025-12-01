@@ -9,12 +9,14 @@ import com.luna.prosync.data.remote.dto.CreateProjectRequest
 import com.luna.prosync.data.remote.dto.CreateTaskRequest
 import com.luna.prosync.data.remote.dto.CreateUserProjectRequest
 import com.luna.prosync.data.remote.dto.DashboardStatsDto
+import com.luna.prosync.data.remote.dto.GoogleLoginRequest
 import com.luna.prosync.data.remote.dto.InviteMemberRequest
 import com.luna.prosync.data.remote.dto.LoginRequest
 import com.luna.prosync.data.remote.dto.NotificationDto
 import com.luna.prosync.data.remote.dto.PageResponse
 import com.luna.prosync.data.remote.dto.ProjectDto
 import com.luna.prosync.data.remote.dto.TaskDto
+import com.luna.prosync.data.remote.dto.TaskFileDto
 import com.luna.prosync.data.remote.dto.UpdateRoleRequest
 import com.luna.prosync.data.remote.dto.UpdateTaskRequest
 import com.luna.prosync.data.remote.dto.UserDto
@@ -24,18 +26,25 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
 
-    @POST("/api/auth/login")
+
+    @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
 
-    @POST("/api/auth/register")
+    @POST("api/auth/register")
     suspend fun register(@Body request: UserRegisterRequest): Response<ResponseBody>
+
+    @POST("api/auth/google")
+    suspend fun googleLogin(@Body request: GoogleLoginRequest): AuthResponse
 
     @GET("api/auth/perfil")
     suspend fun getProfile(): UserDto
@@ -97,6 +106,12 @@ interface ApiService {
     @GET("api/notifications")
     suspend fun getUserNotifications(): PageResponse<NotificationDto>
 
+    @PATCH("api/notifications/{id}/read")
+    suspend fun markNotificationAsRead(@Path("id") id: Int): NotificationDto
+
+    @PATCH("api/notifications/read-all")
+    suspend fun markAllNotificationsAsRead(): Map<String, Int>
+
     /* TODO: Endpoints not implemented in API yet
     @POST("api/projects/{projectId}/join")
     suspend fun acceptInvitation(@Path("projectId") projectId: Int): ResponseBody
@@ -113,4 +128,14 @@ interface ApiService {
 
     @POST("api/comments")
     suspend fun createComment(@Body request: CreateCommentRequest): CommentDto
+
+    @GET("api/files/task/{taskId}")
+    suspend fun getTaskFiles(@Path("taskId") taskId: Int): List<TaskFileDto>
+
+    @Multipart
+    @POST("api/files/task/{taskId}")
+    suspend fun uploadFile(
+        @Path("taskId") taskId: Int,
+        @Part file: okhttp3.MultipartBody.Part
+    ): retrofit2.Response<TaskFileDto>
 }

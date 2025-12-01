@@ -12,5 +12,6 @@ data class TaskDetailUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSaved: Boolean = false,
-    val isLeader: Boolean = false
+    val isLeader: Boolean = false,
+    val attachments: List<com.luna.prosync.data.remote.dto.TaskFileDto> = emptyList()
 )

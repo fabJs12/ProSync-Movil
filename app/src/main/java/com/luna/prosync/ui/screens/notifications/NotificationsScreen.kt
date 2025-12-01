@@ -1,12 +1,14 @@
 package com.luna.prosync.ui.screens.notifications
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -43,6 +45,15 @@ fun NotificationsScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.markAllAsRead() }) {
+                        Icon(
+                            Icons.Default.DoneAll,
+                            contentDescription = "Marcar todas como leídas",
+                            tint = DarkBlue
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -89,7 +100,10 @@ fun NotificationsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(uiState.notifications) { notification ->
-                        NotificationCard(notification)
+                        NotificationCard(
+                            notification = notification,
+                            onClick = { viewModel.markAsRead(notification.id) }
+                        )
                     }
                 }
             }
@@ -98,12 +112,16 @@ fun NotificationsScreen(
 }
 
 @Composable
-fun NotificationCard(notification: NotificationDto) {
+fun NotificationCard(notification: NotificationDto, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (notification.leida) Color.White else Color(0xFFF0F9FF) // Highlight unread
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (notification.leida) 1.dp else 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -141,7 +159,8 @@ fun NotificationCard(notification: NotificationDto) {
             Text(
                 text = notification.mensaje,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextLabel
+                color = TextLabel,
+                fontWeight = if (notification.leida) FontWeight.Normal else FontWeight.Medium
             )
             
             Spacer(modifier = Modifier.height(8.dp))
