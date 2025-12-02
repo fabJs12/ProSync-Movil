@@ -107,4 +107,8 @@ class LoginViewModel @Inject constructor(
     fun onDismissUsernameDialog() {
         _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
     }
+
+    fun onGoogleSignInError(message: String) {
+        _uiState.update { it.copy(error = message, isLoading = false) }
+    }
 }

@@ -33,24 +33,45 @@ class GoogleAuthClient(
     }
 
     suspend fun signInWithIntent(intent: Intent): SignInResult {
-        val credential = oneTapClient.getSignInCredentialFromIntent(intent)
-        val googleIdToken = credential.googleIdToken
-        val username = credential.id
+        return try {
+            android.util.Log.d("GOOGLE_LOGIN", "Processing signInWithIntent")
+            val credential = oneTapClient.getSignInCredentialFromIntent(intent)
+            val googleIdToken = credential.googleIdToken
+            val username = credential.id
+            android.util.Log.d("GOOGLE_LOGIN", "Credential retrieved. Token exists: ${googleIdToken != null}")
 
-        return if (googleIdToken != null) {
-            SignInResult(
-                data = UserData(
-                    userId = username,
-                    username = credential.displayName,
-                    profilePictureUrl = credential.profilePictureUri?.toString()
-                ),
-                errorMessage = null,
-                idToken = googleIdToken
-            )
-        } else {
+            if (googleIdToken != null) {
+                SignInResult(
+                    data = UserData(
+                        userId = username,
+                        username = credential.displayName,
+                        profilePictureUrl = credential.profilePictureUri?.toString()
+                    ),
+                    errorMessage = null,
+                    idToken = googleIdToken
+                )
+            } else {
+                android.util.Log.e("GOOGLE_LOGIN", "No Google ID Token found")
+                SignInResult(
+                    data = null,
+                    errorMessage = "No Google ID Token found",
+                    idToken = null
+                )
+            }
+        } catch (e: ApiException) {
+            e.printStackTrace()
+            android.util.Log.e("GOOGLE_LOGIN", "ApiException: ${e.statusCode}", e)
             SignInResult(
                 data = null,
-                errorMessage = "No Google ID Token found",
+                errorMessage = "Google Sign-In API Error: ${e.statusCode}",
+                idToken = null
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            android.util.Log.e("GOOGLE_LOGIN", "General Exception", e)
+            SignInResult(
+                data = null,
+                errorMessage = "Google Sign-In Error: ${e.message}",
                 idToken = null
             )
         }

@@ -95,7 +95,13 @@ class RegisterViewModel @Inject constructor(
                 _navigateToProjects.value = true
                 _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
             } catch (e: Exception) {
-                if (e.message?.contains("USER_NOT_FOUND") == true || e.message?.contains("404") == true) {
+                val isUserNotFound = if (e is retrofit2.HttpException) {
+                    e.code() == 404
+                } else {
+                    e.message?.contains("USER_NOT_FOUND") == true || e.message?.contains("404") == true
+                }
+
+                if (isUserNotFound) {
                     _uiState.update { it.copy(showUsernameDialog = true, googleToken = token, isLoading = false) }
                 } else {
                     _uiState.update { it.copy(error = "Error Google: ${e.message}", isLoading = false) }
@@ -113,5 +119,9 @@ class RegisterViewModel @Inject constructor(
 
     fun onDismissUsernameDialog() {
         _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
+    }
+
+    fun onGoogleSignInError(message: String) {
+        _uiState.update { it.copy(error = message, isLoading = false) }
     }
 }

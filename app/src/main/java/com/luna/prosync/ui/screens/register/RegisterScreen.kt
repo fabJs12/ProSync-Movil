@@ -89,18 +89,24 @@ fun RegisterScreen(
         }
     }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val googleAuthClient = remember { com.luna.prosync.data.remote.GoogleAuthClient(context) }
+    val context = LocalContext.current
+    val googleAuthClient = remember { GoogleAuthClient(context) }
     val scope = rememberCoroutineScope()
 
-    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             scope.launch {
-                val signInResult = googleAuthClient.signInWithIntent(result.data ?: return@launch)
-                signInResult.idToken?.let { token ->
-                    viewModel.loginWithGoogle(token)
+                try {
+                    val signInResult = googleAuthClient.signInWithIntent(result.data ?: return@launch)
+                    signInResult.idToken?.let { token ->
+                        viewModel.loginWithGoogle(token)
+                    } ?: run {
+                        viewModel.onGoogleSignInError(signInResult.errorMessage ?: "Error desconocido de Google")
+                    }
+                } catch (e: Exception) {
+                    viewModel.onGoogleSignInError("Error en Google Sign-In: ${e.message}")
                 }
             }
         }
@@ -108,7 +114,7 @@ fun RegisterScreen(
 
     if (uiState.showUsernameDialog) {
         var newUsername by remember { mutableStateOf("") }
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = viewModel::onDismissUsernameDialog,
             title = { Text("Elige un nombre de usuario") },
             text = {
@@ -132,7 +138,7 @@ fun RegisterScreen(
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = viewModel::onDismissUsernameDialog) {
+                TextButton(onClick = viewModel::onDismissUsernameDialog) {
                     Text("Cancelar")
                 }
             }
@@ -277,12 +283,12 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        androidx.compose.material3.OutlinedButton(
+        OutlinedButton(
             onClick = {
                 scope.launch {
                     val signInIntentSender = googleAuthClient.signIn()
                     launcher.launch(
-                        androidx.activity.result.IntentSenderRequest.Builder(
+                        IntentSenderRequest.Builder(
                             signInIntentSender ?: return@launch
                         ).build()
                     )

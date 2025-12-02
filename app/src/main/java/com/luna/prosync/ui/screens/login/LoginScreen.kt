@@ -40,6 +40,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.luna.prosync.ui.screens.login.LoginViewModel
+import com.luna.prosync.data.remote.GoogleAuthClient
+import com.luna.prosync.data.remote.SignInResult
 
 @Composable
 fun LoginScreen(
@@ -58,19 +60,31 @@ fun LoginScreen(
     }
 
     val context = LocalContext.current
-    val googleAuthClient = remember { com.luna.prosync.data.remote.GoogleAuthClient(context) }
+    val googleAuthClient = remember { GoogleAuthClient(context) }
     val scope = rememberCoroutineScope()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
+        android.util.Log.d("GOOGLE_LOGIN", "Result Code: ${result.resultCode}")
         if (result.resultCode == Activity.RESULT_OK) {
             scope.launch {
-                val signInResult = googleAuthClient.signInWithIntent(result.data ?: return@launch)
-                signInResult.idToken?.let { token ->
-                    viewModel.loginWithGoogle(token)
+                try {
+                    val signInResult = googleAuthClient.signInWithIntent(result.data ?: return@launch)
+                    android.util.Log.d("GOOGLE_LOGIN", "SignInResult: ${signInResult.errorMessage} Token: ${signInResult.idToken}")
+                    signInResult.idToken?.let { token ->
+                        viewModel.loginWithGoogle(token)
+                    } ?: run {
+                        viewModel.onGoogleSignInError(signInResult.errorMessage ?: "Error desconocido de Google")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("GOOGLE_LOGIN", "Exception in launcher", e)
+                    viewModel.onGoogleSignInError("Error en Google Sign-In: ${e.message}")
                 }
             }
+        } else {
+             android.util.Log.e("GOOGLE_LOGIN", "Result not OK: ${result.resultCode}")
+             viewModel.onGoogleSignInError("Google Sign-In cancelado o fallido (Código: ${result.resultCode})")
         }
     }
 
@@ -205,7 +219,7 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Error,
+                        imageVector = Icons.Filled.Error,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onErrorContainer
                     )
