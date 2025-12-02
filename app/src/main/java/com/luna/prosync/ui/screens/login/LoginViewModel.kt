@@ -38,11 +38,9 @@ class LoginViewModel @Inject constructor(
     }
 
     fun onLoginClick() {
-
         val currentState = _uiState.value
 
         viewModelScope.launch {
-
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
@@ -59,7 +57,12 @@ class LoginViewModel @Inject constructor(
 
                 _navigateToProjects.value = true
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message ?: "Error desconocido") }
+                val errorMessage = if (e.message?.contains("401") == true) {
+                    "Credenciales incorrectas. Por favor verifica tu usuario y contraseña."
+                } else {
+                    e.message ?: "Error desconocido"
+                }
+                _uiState.update { it.copy(error = errorMessage) }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -79,7 +82,13 @@ class LoginViewModel @Inject constructor(
                 _navigateToProjects.value = true
                 _uiState.update { it.copy(showUsernameDialog = false, googleToken = null) }
             } catch (e: Exception) {
-                if (e.message?.contains("USER_NOT_FOUND") == true || e.message?.contains("404") == true) {
+                val isUserNotFound = if (e is retrofit2.HttpException) {
+                    e.code() == 404
+                } else {
+                    e.message?.contains("USER_NOT_FOUND") == true || e.message?.contains("404") == true
+                }
+
+                if (isUserNotFound) {
                     _uiState.update { it.copy(showUsernameDialog = true, googleToken = token, isLoading = false) }
                 } else {
                     _uiState.update { it.copy(error = "Error Google: ${e.message}", isLoading = false) }

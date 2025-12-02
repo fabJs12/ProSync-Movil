@@ -6,5 +6,7 @@ import kotlinx.serialization.Serializable
 data class ProjectDto(
     val id: Int,
     val name: String,
-    val description: String?
+    val description: String?,
+    val miembros: Int = 0,
+    val tareas: Int = 0
 )

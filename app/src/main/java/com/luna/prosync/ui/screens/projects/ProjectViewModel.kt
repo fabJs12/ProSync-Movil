@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,19 +21,18 @@ class ProjectViewModel @Inject constructor(
 
     fun loadProjects() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val projectList = projectRepository.getProjects()
-
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    projects = projectList
-                )
+                val projectsWithStats = projectRepository.getProjectsWithStats()
+                _uiState.update { it.copy(
+                    projects = projectsWithStats,
+                    isLoading = false
+                ) }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     isLoading = false,
-                    error = "Error al cargar proyectos: ${e.message}"
-                )
+                    error = e.message ?: "Error al cargar proyectos"
+                ) }
             }
         }
     }

@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -192,12 +193,30 @@ fun LoginScreen(
         )
 
         if (uiState.error != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = uiState.error!!,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 14.sp
-            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = uiState.error!!,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontSize = 14.sp
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -238,9 +257,13 @@ fun LoginScreen(
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            // Google Icon (using a placeholder or resource if available, here just text for simplicity or Icon)
-            // Assuming no Google icon resource is readily available, I'll use text or a generic icon
-            // But ideally we should use a painter resource. I'll use text "Iniciar con Google"
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(id = com.luna.prosync.R.drawable.ic_google_logo),
+                contentDescription = "Google Logo",
+                modifier = Modifier.size(24.dp),
+                tint = Color.Unspecified
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text("Iniciar con Google", color = Color.Black)
         }
 

@@ -58,6 +58,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.IntentSenderRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import kotlinx.coroutines.launch
 import com.luna.prosync.data.remote.GoogleAuthClient
 import com.luna.prosync.ui.screens.register.RegisterViewModel
@@ -75,30 +77,13 @@ fun RegisterScreen(
 
     LaunchedEffect(navigateToLogin) {
         if (navigateToLogin) {
-            onRegisterSuccess() // Or navigate to login, but here it seems onRegisterSuccess goes to Login?
-            // The original code called onRegisterSuccess() when navigateToLogin was true.
-            // I'll keep it as is.
+            onRegisterSuccess() 
             viewModel.onNavigationDone()
         }
     }
 
-    // Handle direct navigation to projects (Google Login)
     LaunchedEffect(navigateToProjects) {
         if (navigateToProjects) {
-            // We need a callback for this. The signature only has onRegisterSuccess and onBackToLogin.
-            // Assuming onRegisterSuccess navigates to Login, we might need a new callback or change behavior.
-            // But wait, if they login with Google, they should go to the main app, not Login screen.
-            // The current onRegisterSuccess likely goes to LoginScreen because registration usually requires login afterwards.
-            // However, for Google Auth, we are already logged in.
-            // I'll assume onRegisterSuccess might not be enough if it just goes to Login.
-            // But for now, I'll use onRegisterSuccess and let the user handle the flow, OR I should ask for a new callback.
-            // Given I can't change the navigation graph easily without seeing it, I'll assume onRegisterSuccess is fine OR I'll add a TODO.
-            // Actually, if I look at LoginScreen, it has onLoginSuccess. RegisterScreen has onRegisterSuccess.
-            // If onRegisterSuccess goes to Login, then the user has to login again?
-            // If Google Login succeeds, we want to go to Home.
-            // I'll use onRegisterSuccess for now, but ideally it should be onLoginSuccess.
-            // Let's check the NavGraph if possible? No, I'll just use onRegisterSuccess and maybe the user can redirect.
-            // BETTER: I'll add a comment that this should navigate to Home.
             onRegisterSuccess()
             viewModel.onNavigationDone()
         }
@@ -308,6 +293,13 @@ fun RegisterScreen(
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(id = com.luna.prosync.R.drawable.ic_google_logo),
+                contentDescription = "Google Logo",
+                modifier = Modifier.size(24.dp),
+                tint = Color.Unspecified
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text("Registrarse con Google", color = Color.Black)
         }
     }

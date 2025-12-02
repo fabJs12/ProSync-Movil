@@ -55,6 +55,9 @@ interface ApiService {
     @GET("api/projects/listar")
     suspend fun getProjects(): List<ProjectDto>
 
+    @GET("api/projects/{id}/detalle")
+    suspend fun getProjectDetails(@Path("id") id: Int): com.luna.prosync.data.remote.dto.ProjectDetailDto
+
     @POST("api/projects/crear")
     suspend fun createProject(@Body request: CreateProjectRequest): ProjectDto
 

@@ -6,8 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,7 +27,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luna.prosync.data.remote.dto.ProjectDto
 import com.luna.prosync.ui.theme.DarkBlue
 import com.luna.prosync.ui.theme.LightGray
-
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -171,74 +171,75 @@ fun ProjectCard(
             defaultElevation = 2.dp
         )
     ) {
-        Box( modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header: Title and Menu
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Surface(
-                    color = DarkBlue.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Outlined.Folder,
-                            contentDescription = null,
-                            tint = DarkBlue
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = project.name,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkBlue,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-
-                    if (!project.description.isNullOrBlank()) {
-                        Text(
-                            text = project.description,
-                            fontSize = 14.sp,
-                            color = Color.Gray,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            lineHeight = 20.sp
-                        )
-                    } else {
-                        Text(
-                            text = "Sin descripción",
-                            fontSize = 14.sp,
-                            color = Color.LightGray,
-                            fontStyle = FontStyle.Italic
-                        )
-                    }
-                }
-            }
-
-            IconButton(
-                onClick = {  },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-            ) {
+                Text(
+                    text = project.name,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkBlue,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                
                 Icon(
                     imageVector = Icons.Outlined.MoreVert,
                     contentDescription = "Opciones",
-                    tint = Color.Gray
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Metadata Row: Members and Tasks
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Members
+                Icon(
+                    imageVector = Icons.Outlined.People,
+                    contentDescription = "Miembros",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "${project.miembros} miembros",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "•",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Tasks
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = "Tareas",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "${project.tareas} tareas",
+                    fontSize = 14.sp,
+                    color = Color.Gray
                 )
             }
         }

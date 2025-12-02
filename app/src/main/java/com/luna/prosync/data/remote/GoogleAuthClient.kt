@@ -17,7 +17,7 @@ class GoogleAuthClient(
 
     // TODO: Replace with your actual Web Client ID from Google Cloud Console
     // It usually ends with .apps.googleusercontent.com
-    private val webClientId = "YOUR_WEB_CLIENT_ID_HERE" 
+    private val webClientId = context.getString(com.luna.prosync.R.string.default_web_client_id) 
 
     suspend fun signIn(): IntentSender? {
         val result = try {
